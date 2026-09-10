@@ -1,0 +1,1257 @@
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LAVI AI</title>
+
+  <style>
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      background: #f6f6f4;
+      color: #111;
+    }
+
+    button, input, textarea, select {
+      font: inherit;
+    }
+
+    .app {
+      min-height: 100vh;
+      display: flex;
+    }
+
+    .sidebar {
+      width: 240px;
+      background: #111;
+      color: white;
+      padding: 24px 16px;
+      position: fixed;
+      inset: 0 auto 0 0;
+    }
+
+    .logo {
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      padding: 0 12px 30px;
+    }
+
+    .nav button {
+      width: 100%;
+      border: 0;
+      background: transparent;
+      color: #aaa;
+      text-align: left;
+      padding: 13px 12px;
+      border-radius: 8px;
+      margin-bottom: 4px;
+      cursor: pointer;
+    }
+
+    .nav button:hover,
+    .nav button.active {
+      background: #242424;
+      color: white;
+    }
+
+    .security {
+      position: absolute;
+      bottom: 25px;
+      left: 28px;
+      right: 20px;
+      color: #888;
+      font-size: 12px;
+    }
+
+    .main {
+      margin-left: 240px;
+      width: calc(100% - 240px);
+      min-height: 100vh;
+    }
+
+    .topbar {
+      height: 70px;
+      background: white;
+      border-bottom: 1px solid #e5e5e5;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 30px;
+    }
+
+    .status {
+      font-size: 13px;
+      color: #555;
+    }
+
+    .online {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      background: #222;
+      border-radius: 50%;
+      margin-right: 6px;
+    }
+
+    .content {
+      padding: 35px;
+      max-width: 1200px;
+    }
+
+    .page {
+      display: none;
+    }
+
+    .page.active {
+      display: block;
+    }
+
+    h1 {
+      margin-top: 0;
+      font-size: 30px;
+    }
+
+    .subtitle {
+      color: #666;
+      margin-bottom: 30px;
+    }
+
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 18px;
+    }
+
+    .card,
+    .panel {
+      background: white;
+      border: 1px solid #e5e5e5;
+      border-radius: 12px;
+      padding: 22px;
+    }
+
+    .card small {
+      color: #777;
+    }
+
+    .number {
+      display: block;
+      font-size: 28px;
+      font-weight: 700;
+      margin-top: 10px;
+    }
+
+    .panel {
+      max-width: 760px;
+    }
+
+    .field {
+      margin-bottom: 18px;
+    }
+
+    .field label {
+      display: block;
+      font-weight: 600;
+      margin-bottom: 7px;
+    }
+
+    .field input,
+    .field textarea,
+    .field select {
+      width: 100%;
+      padding: 13px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      outline: none;
+      background: white;
+    }
+
+    .field textarea {
+      min-height: 100px;
+      resize: vertical;
+    }
+
+    .primary {
+      background: #111;
+      color: white;
+      border: 0;
+      border-radius: 8px;
+      padding: 13px 20px;
+      cursor: pointer;
+    }
+
+    .primary:hover {
+      background: #333;
+    }
+
+    .primary:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .chat-box {
+      background: white;
+      border: 1px solid #ddd;
+      border-radius: 14px;
+      padding: 20px;
+    }
+
+    #chat {
+      height: 400px;
+      overflow-y: auto;
+      border-bottom: 1px solid #eee;
+      padding-bottom: 15px;
+    }
+
+    .message {
+      max-width: 75%;
+      padding: 12px 15px;
+      margin: 10px 0;
+      border-radius: 10px;
+      line-height: 1.5;
+      white-space: pre-wrap;
+    }
+
+    .user {
+      margin-left: auto;
+      background: #111;
+      color: white;
+    }
+
+    .lavi {
+      background: #f0f0f0;
+    }
+
+    .chat-input {
+      display: flex;
+      gap: 10px;
+      margin-top: 15px;
+    }
+
+    .chat-input input {
+      flex: 1;
+      padding: 14px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      outline: none;
+    }
+
+    .table {
+      background: white;
+      border: 1px solid #e5e5e5;
+      border-radius: 12px;
+      overflow: hidden;
+    }
+
+    .empty {
+      padding: 45px 20px;
+      text-align: center;
+      color: #777;
+    }
+
+    .legal {
+      background: white;
+      border: 1px solid #e5e5e5;
+      border-radius: 12px;
+      padding: 25px;
+      line-height: 1.7;
+      max-width: 850px;
+    }
+
+    .legal h2 {
+      margin-top: 25px;
+    }
+
+    .notice {
+      background: #f1f1f1;
+      border-radius: 8px;
+      padding: 14px;
+      margin-bottom: 20px;
+      color: #444;
+    }
+
+    @media (max-width: 800px) {
+      .sidebar {
+        width: 190px;
+      }
+
+      .main {
+        margin-left: 190px;
+        width: calc(100% - 190px);
+      }
+
+      .cards {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    @media (max-width: 600px) {
+      .sidebar {
+        width: 70px;
+        padding: 20px 8px;
+      }
+
+      .logo {
+        font-size: 16px;
+        padding: 0 5px 25px;
+      }
+
+      .nav button {
+        font-size: 0;
+        text-align: center;
+      }
+
+      .security {
+        display: none;
+      }
+
+      .main {
+        margin-left: 70px;
+        width: calc(100% - 70px);
+      }
+
+      .topbar {
+        padding: 0 15px;
+      }
+
+      .content {
+        padding: 20px;
+      }
+
+      .cards {
+        grid-template-columns: 1fr;
+      }
+
+      .chat-input {
+        flex-direction: column;
+      }
+
+      .message {
+        max-width: 90%;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="app">
+
+  <aside class="sidebar">
+
+    <div class="logo">LAVI AI</div>
+
+    <nav class="nav">
+
+      <button class="active" onclick="showPage('dashboard', this)">
+        Dashboard
+      </button>
+
+      <button onclick="showPage('onboarding', this)">
+        Business Setup
+      </button>
+
+      <button onclick="showPage('conversations', this)">
+        AI Conversations
+      </button>
+
+      <button onclick="showPage('customers', this)">
+        Customers
+      </button>
+
+      <button onclick="showPage('bookings', this)">
+        Bookings
+      </button>
+
+      <button onclick="showPage('products', this)">
+        Products & Services
+      </button>
+
+      <button onclick="showPage('analytics', this)">
+        Analytics
+      </button>
+
+      <button onclick="showPage('settings', this)">
+        Settings
+      </button>
+
+      <button onclick="showPage('terms', this)">
+        Terms & Conditions
+      </button>
+
+      <button onclick="showPage('privacy', this)">
+        Privacy Policy
+      </button>
+
+    </nav>
+
+    <div class="security">
+      🔒 Secure workspace
+    </div>
+
+  </aside>
+
+
+  <main class="main">
+
+    <header class="topbar">
+
+      <strong>Business Workspace</strong>
+
+      <div class="status">
+        <span class="online"></span>
+        LAVI AI Online
+      </div>
+
+    </header>
+
+
+    <section class="content">
+
+
+      <!-- DASHBOARD -->
+
+      <div id="dashboard" class="page active">
+
+        <h1>Welcome to LAVI AI</h1>
+
+        <p class="subtitle">
+          Your AI-powered business workspace.
+        </p>
+
+
+        <div class="cards">
+
+          <div class="card">
+            <small>AI Conversations</small>
+            <span class="number">0</span>
+          </div>
+
+          <div class="card">
+            <small>Customers</small>
+            <span class="number">0</span>
+          </div>
+
+          <div class="card">
+            <small>Bookings</small>
+            <span class="number">0</span>
+          </div>
+
+          <div class="card">
+            <small>Products & Services</small>
+            <span class="number">0</span>
+          </div>
+
+        </div>
+
+
+        <br>
+
+
+        <div class="panel">
+
+          <h2>Business status</h2>
+
+          <p id="businessStatus">
+            Business profile not configured yet.
+          </p>
+
+          <button
+            class="primary"
+            onclick="openOnboarding()"
+          >
+            Set up your business
+          </button>
+
+        </div>
+
+      </div>
+
+
+      <!-- BUSINESS SETUP -->
+
+      <div id="onboarding" class="page">
+
+        <h1>Business Setup</h1>
+
+        <p class="subtitle">
+          Give LAVI the information it needs to support your customers.
+        </p>
+
+
+        <div class="panel">
+
+          <div class="notice">
+            This information is currently stored in this browser.
+            Secure server-side business accounts and database storage
+            will be added before production launch.
+          </div>
+
+
+          <div class="field">
+
+            <label>Business name</label>
+
+            <input
+              id="businessName"
+              placeholder="Example: LAVI Hotel"
+            >
+
+          </div>
+
+
+          <div class="field">
+
+            <label>Business type</label>
+
+            <select id="businessType">
+
+              <option value="">
+                Select business type
+              </option>
+
+              <option>
+                Hotel & Hospitality
+              </option>
+
+              <option>
+                Travel & Tourism
+              </option>
+
+              <option>
+                Restaurant
+              </option>
+
+              <option>
+                Retail
+              </option>
+
+              <option>
+                Professional Services
+              </option>
+
+              <option>
+                Other
+              </option>
+
+            </select>
+
+          </div>
+
+
+          <div class="field">
+
+            <label>Products & Services</label>
+
+            <textarea
+              id="businessServices"
+              placeholder="List your products or services, prices and important details."
+            ></textarea>
+
+          </div>
+
+
+          <div class="field">
+
+            <label>Opening hours</label>
+
+            <input
+              id="businessHours"
+              placeholder="Example: Monday-Sunday, 8:00 AM-8:00 PM"
+            >
+
+          </div>
+
+
+          <div class="field">
+
+            <label>Frequently Asked Questions</label>
+
+            <textarea
+              id="businessFaq"
+              placeholder="Example: Do you offer airport transfers? Yes."
+            ></textarea>
+
+          </div>
+
+
+          <button
+            class="primary"
+            onclick="saveBusiness()"
+          >
+            Save Business Profile
+          </button>
+
+        </div>
+
+      </div>
+
+
+      <!-- AI CONVERSATIONS -->
+
+      <div id="conversations" class="page">
+
+        <h1>AI Conversations</h1>
+
+        <p class="subtitle">
+          Chat directly with LAVI AI.
+        </p>
+
+
+        <div class="chat-box">
+
+          <div id="chat">
+
+            <div class="message lavi">
+              Hello! I'm LAVI AI. How can I help your business today?
+            </div>
+
+          </div>
+
+
+          <div class="chat-input">
+
+            <input
+              id="message"
+              placeholder="Ask LAVI AI..."
+              autocomplete="off"
+            >
+
+            <button
+              class="primary"
+              id="send"
+            >
+              Send
+            </button>
+
+          </div>
+
+        </div>
+
+      </div>
+
+
+      <!-- CUSTOMERS -->
+
+      <div id="customers" class="page">
+
+        <h1>Customers</h1>
+
+        <p class="subtitle">
+          Manage customer information.
+        </p>
+
+
+        <div class="table">
+
+          <div class="empty">
+            No customers yet.
+          </div>
+
+        </div>
+
+      </div>
+
+
+      <!-- BOOKINGS -->
+
+      <div id="bookings" class="page">
+
+        <h1>Bookings</h1>
+
+        <p class="subtitle">
+          Manage reservations and appointments.
+        </p>
+
+
+        <div class="table">
+
+          <div class="empty">
+            No bookings yet.
+          </div>
+
+        </div>
+
+      </div>
+
+
+      <!-- PRODUCTS -->
+
+      <div id="products" class="page">
+
+        <h1>Products & Services</h1>
+
+        <p class="subtitle">
+          Manage what your business offers.
+        </p>
+
+
+        <div class="table">
+
+          <div class="empty">
+            No products or services added yet.
+          </div>
+
+        </div>
+
+      </div>
+
+
+      <!-- ANALYTICS -->
+
+      <div id="analytics" class="page">
+
+        <h1>Analytics</h1>
+
+        <p class="subtitle">
+          Understand your business activity.
+        </p>
+
+
+        <div class="cards">
+
+          <div class="card">
+            <small>Conversations</small>
+            <span class="number">0</span>
+          </div>
+
+          <div class="card">
+            <small>Bookings</small>
+            <span class="number">0</span>
+          </div>
+
+          <div class="card">
+            <small>Customers</small>
+            <span class="number">0</span>
+          </div>
+
+          <div class="card">
+            <small>AI Status</small>
+            <span class="number">Online</span>
+          </div>
+
+        </div>
+
+      </div>
+
+
+      <!-- SETTINGS -->
+
+      <div id="settings" class="page">
+
+        <h1>Settings</h1>
+
+        <p class="subtitle">
+          Manage your LAVI AI workspace.
+        </p>
+
+
+        <div class="panel">
+
+          <h3>Security</h3>
+
+          <p>
+            Your OpenAI API key remains on the server and is not exposed
+            in this page.
+          </p>
+
+
+          <h3>Business Workspace</h3>
+
+          <p>
+            Business configuration is managed through Business Setup.
+          </p>
+
+
+          <h3>Data</h3>
+
+          <p>
+            Secure database storage and user accounts will be added before
+            public production launch.
+          </p>
+
+        </div>
+
+      </div>
+
+
+      <!-- TERMS -->
+
+      <div id="terms" class="page">
+
+        <h1>Terms & Conditions</h1>
+
+
+        <div class="legal">
+
+          <p>
+            These Terms & Conditions govern the use of LAVI AI.
+          </p>
+
+
+          <h2>1. Use of LAVI AI</h2>
+
+          <p>
+            LAVI AI provides AI-powered business support and automation
+            features. Businesses are responsible for the information they
+            provide to the platform and for reviewing AI-generated responses.
+          </p>
+
+
+          <h2>2. Accuracy</h2>
+
+          <p>
+            AI-generated information may contain errors. Businesses should
+            verify important information before relying on it.
+          </p>
+
+
+          <h2>3. Business Responsibility</h2>
+
+          <p>
+            Businesses remain responsible for their products, services,
+            prices, policies, bookings, customers and communications.
+          </p>
+
+
+          <h2>4. Security</h2>
+
+          <p>
+            Users must keep their account credentials and other confidential
+            information secure.
+          </p>
+
+
+          <h2>5. Changes</h2>
+
+          <p>
+            These terms may be updated as LAVI AI develops.
+          </p>
+
+        </div>
+
+      </div>
+
+
+      <!-- PRIVACY -->
+
+      <div id="privacy" class="page">
+
+        <h1>Privacy Policy</h1>
+
+
+        <div class="legal">
+
+          <p>
+            LAVI AI respects the privacy of businesses and their customers.
+          </p>
+
+
+          <h2>1. Information We May Collect</h2>
+
+          <p>
+            Depending on the features used, LAVI AI may process business
+            information, customer messages, booking information and account
+            information.
+          </p>
+
+
+          <h2>2. How Information Is Used</h2>
+
+          <p>
+            Information may be used to provide customer support, business
+            automation, bookings, analytics and other requested services.
+          </p>
+
+
+          <h2>3. Security</h2>
+
+          <p>
+            API credentials and other sensitive technical secrets must remain
+            on secure server infrastructure and must not be exposed to
+            customers through browser code.
+          </p>
+
+
+          <h2>4. Data Control</h2>
+
+          <p>
+            Businesses will receive appropriate controls for managing their
+            information as secure account and database features are introduced.
+          </p>
+
+
+          <h2>5. Policy Updates</h2>
+
+          <p>
+            This Privacy Policy may be updated when LAVI AI introduces new
+            features or legal requirements.
+          </p>
+
+        </div>
+
+      </div>
+
+
+    </section>
+
+  </main>
+
+</div>
+
+
+<script>
+
+
+  function showPage(pageId, button) {
+
+    document.querySelectorAll(".page").forEach(page => {
+      page.classList.remove("active");
+    });
+
+    document.getElementById(pageId).classList.add("active");
+
+
+    document.querySelectorAll(".nav button").forEach(btn => {
+      btn.classList.remove("active");
+    });
+
+
+    if (button) {
+      button.classList.add("active");
+    }
+
+  }
+
+
+  function openOnboarding() {
+
+    const buttons =
+      document.querySelectorAll(".nav button");
+
+    showPage(
+      "onboarding",
+      buttons[1]
+    );
+
+  }
+
+
+  function saveBusiness() {
+
+    const business = {
+
+      name:
+        document
+          .getElementById("businessName")
+          .value
+          .trim(),
+
+      type:
+        document
+          .getElementById("businessType")
+          .value,
+
+      services:
+        document
+          .getElementById("businessServices")
+          .value
+          .trim(),
+
+      hours:
+        document
+          .getElementById("businessHours")
+          .value
+          .trim(),
+
+      faq:
+        document
+          .getElementById("businessFaq")
+          .value
+          .trim()
+
+    };
+
+
+    if (!business.name || !business.type) {
+
+      alert(
+        "Please enter the business name and business type."
+      );
+
+      return;
+
+    }
+
+
+    localStorage.setItem(
+      "laviBusiness",
+      JSON.stringify(business)
+    );
+
+
+    document.getElementById(
+      "businessStatus"
+    ).textContent =
+      business.name + " is configured.";
+
+
+    alert(
+      "Business profile saved."
+    );
+
+  }
+
+
+  function loadBusiness() {
+
+    const saved =
+      localStorage.getItem("laviBusiness");
+
+
+    if (!saved) {
+      return;
+    }
+
+
+    try {
+
+      const business =
+        JSON.parse(saved);
+
+
+      document.getElementById(
+        "businessName"
+      ).value =
+        business.name || "";
+
+
+      document.getElementById(
+        "businessType"
+      ).value =
+        business.type || "";
+
+
+      document.getElementById(
+        "businessServices"
+      ).value =
+        business.services || "";
+
+
+      document.getElementById(
+        "businessHours"
+      ).value =
+        business.hours || "";
+
+
+      document.getElementById(
+        "businessFaq"
+      ).value =
+        business.faq || "";
+
+
+      document.getElementById(
+        "businessStatus"
+      ).textContent =
+        business.name + " is configured.";
+
+
+    } catch (error) {
+
+      console.error(
+        "Could not load business profile:",
+        error
+      );
+
+    }
+
+  }
+
+
+  const input =
+    document.getElementById("message");
+
+
+  const sendButton =
+    document.getElementById("send");
+
+
+  const chat =
+    document.getElementById("chat");
+
+
+  function addMessage(text, type) {
+
+    const div =
+      document.createElement("div");
+
+
+    div.className =
+      "message " + type;
+
+
+    div.textContent =
+      text;
+
+
+    chat.appendChild(div);
+
+
+    chat.scrollTop =
+      chat.scrollHeight;
+
+  }
+
+
+  async function sendMessage() {
+
+    const message =
+      input.value.trim();
+
+
+    if (!message) {
+      return;
+    }
+
+
+    addMessage(
+      message,
+      "user"
+    );
+
+
+    input.value = "";
+
+    sendButton.disabled = true;
+
+
+    try {
+
+      const savedBusiness =
+        localStorage.getItem(
+          "laviBusiness"
+        );
+
+
+      let business = {};
+
+
+      if (savedBusiness) {
+
+        try {
+
+          business =
+            JSON.parse(savedBusiness);
+
+        } catch (error) {
+
+          console.error(
+            "Invalid business profile:",
+            error
+          );
+
+        }
+
+      }
+
+
+      const response =
+        await fetch(
+          "/chat",
+          {
+            method: "POST",
+
+            headers: {
+              "Content-Type":
+                "application/json"
+            },
+
+            body: JSON.stringify({
+
+              message: message,
+
+              business: business
+
+            })
+
+          }
+        );
+
+
+      const data =
+        await response.json();
+
+
+      if (!response.ok) {
+
+        throw new Error(
+          data.error ||
+          "Request failed"
+        );
+
+      }
+
+
+      addMessage(
+        data.reply,
+        "lavi"
+      );
+
+
+    } catch (error) {
+
+      console.error(
+        "Chat error:",
+        error
+      );
+
+
+      addMessage(
+        "I could not generate a response. Please try again.",
+        "lavi"
+      );
+
+
+    } finally {
+
+      sendButton.disabled = false;
+
+      input.focus();
+
+    }
+
+  }
+
+
+  sendButton.addEventListener(
+    "click",
+    sendMessage
+  );
+
+
+  input.addEventListener(
+    "keydown",
+    function(event) {
+
+      if (event.key === "Enter") {
+
+        sendMessage();
+
+      }
+
+    }
+  );
+
+
+  loadBusiness();
+
+</script>
+
+</body>
+</html>
+```
