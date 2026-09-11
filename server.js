@@ -15,9 +15,9 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
 
 /*
-  DEMO BUSINESS
-  Used only when the browser has not supplied a business profile.
-  This keeps the public LAVI demo functional.
+  DEMO BUSINESS PROFILE
+  Used when no complete business profile
+  has been provided by the frontend.
 */
 const defaultBusiness = {
   name: "LAVI Hotel",
@@ -27,14 +27,21 @@ const defaultBusiness = {
   faq: "Do you offer airport transfers? Yes."
 };
 
-function normalize(text) {
-  return String(text || "")
-    .toLowerCase()
-    .replace(/[^\w\s]/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-}
 
+/*
+  HEALTH CHECK
+*/
+app.get("/health", (req, res) => {
+  res.json({
+    online: true,
+    openaiConfigured: !!process.env.OPENAI_API_KEY
+  });
+});
+
+
+/*
+  AI CHAT
+*/
 app.post("/chat", async (req, res) => {
   try {
     const message = String(req.body.message || "").trim();
@@ -45,106 +52,115 @@ app.post("/chat", async (req, res) => {
       });
     }
 
-    /*
-      Use the business supplied by the frontend.
-      If none is supplied, use the public demo business.
-    */
-    const incomingBusiness = req.body.business || {};
+    let business = req.body.business || {};
 
+    /*
+      If the frontend sends no useful business information,
+      use the demo business profile.
+    */
     const hasBusinessData =
-      incomingBusiness.name ||
-      incomingBusiness.type ||
-      incomingBusiness.services ||
-      incomingBusiness.hours ||
-      incomingBusiness.faq;
+      business.name ||
+      business.type ||
+      business.services ||
+      business.hours ||
+      business.faq;
 
-    const business = hasBusinessData
-      ? {
-          name: String(incomingBusiness.name || ""),
-          type: String(incomingBusiness.type || ""),
-          services: String(incomingBusiness.services || ""),
-          hours: String(incomingBusiness.hours || ""),
-          faq: String(incomingBusiness.faq || "")
-        }
-      : defaultBusiness;
+    if (!hasBusinessData) {
+      business = defaultBusiness;
+    }
 
-    const question = normalize(message);
-    const faqText = normalize(business.faq);
-    const servicesText = normalize(business.services);
+    const faq = String(business.faq || "");
+    const services = String(business.services || "");
+
+    const question = message.toLowerCase().trim();
+    const faqText = faq.toLowerCase();
+    const servicesText = services.toLowerCase();
+
 
     /*
-      AIRPORT SERVICES
-      Understand common customer wording.
+      DIRECT BUSINESS FACTS
+      These rules take priority over the AI.
     */
-    const airportQuestion =
-      question.includes("airport") &&
+
+    const askingAboutAirportTransfer =
       (
-        question.includes("transfer") ||
-        question.includes("transport") ||
-        question.includes("pickup") ||
-        question.includes("pick up") ||
-        question.includes("drop off") ||
-        question.includes("dropoff") ||
-        question.includes("shuttle")
+        question.includes("airport") &&
+        (
+          question.includes("transfer") ||
+          question.includes("transport") ||
+          question.includes("pickup") ||
+          question.includes("pick up") ||
+          question.includes("drop off") ||
+          question.includes("drop-off") ||
+          question.includes("shuttle")
+        )
       );
 
-    const airportServiceProvided =
-      (
-        faqText.includes("airport") &&
-        (
-          faqText.includes("transfer") ||
-          faqText.includes("transport") ||
-          faqText.includes("pickup") ||
-          faqText.includes("pick up") ||
-          faqText.includes("shuttle")
-        ) &&
-        /\byes\b/.test(faqText)
-      ) ||
+    const businessConfirmsAirportTransfer =
       (
         servicesText.includes("airport") &&
         (
           servicesText.includes("transfer") ||
           servicesText.includes("transport") ||
           servicesText.includes("pickup") ||
-          servicesText.includes("pick up") ||
           servicesText.includes("shuttle")
         )
+      ) ||
+      (
+        faqText.includes("airport") &&
+        (
+          faqText.includes("transfer") ||
+          faqText.includes("transport") ||
+          faqText.includes("pickup") ||
+          faqText.includes("shuttle")
+        ) &&
+        /\byes\b/.test(faqText)
       );
 
-    if (airportQuestion && airportServiceProvided) {
+
+    if (
+      askingAboutAirportTransfer &&
+      businessConfirmsAirportTransfer
+    ) {
       return res.json({
         reply: "Yes, we do offer airport transfers."
       });
     }
 
+
     /*
-      HOTEL ROOMS
+      ROOMS / ACCOMMODATION
     */
-    const roomQuestion =
+
+    const askingAboutRooms =
       question.includes("room") ||
       question.includes("rooms") ||
       question.includes("accommodation") ||
       question.includes("stay");
 
-    const roomsProvided =
+    const businessOffersRooms =
       servicesText.includes("room") ||
-      servicesText.includes("rooms") ||
       servicesText.includes("accommodation") ||
       faqText.includes("room") ||
-      faqText.includes("rooms") ||
       faqText.includes("accommodation");
 
-    if (roomQuestion && roomsProvided) {
+
+    if (
+      askingAboutRooms &&
+      businessOffersRooms
+    ) {
       return res.json({
-        reply: `Yes — ${business.name || "the business"} offers rooms.`
+        reply: "Yes, we offer accommodation."
       });
     }
+
 
     /*
       BUSINESS INFORMATION
     */
+
     const businessInfo = `
-BUSINESS INFORMATION — ONLY SOURCE OF TRUTH
+BUSINESS INFORMATION — USE AS THE ONLY SOURCE OF TRUTH
 
 Business name:
 ${business.name || "Not provided"}
@@ -162,30 +178,35 @@ Frequently Asked Questions:
 ${business.faq || "Not provided"}
 `;
 
+
     /*
       OPENAI RESPONSE
     */
+
     const response = await client.responses.create({
       model: "gpt-5-mini",
 
       instructions: `
 You are LAVI AI, the official customer-support assistant for this business.
 
-STRICT RULES:
+CRITICAL RULES:
 
-1. Use ONLY the business information provided below.
-2. Never invent business information.
-3. Never invent prices.
-4. Never invent availability.
-5. Never invent booking requirements.
-6. Never invent locations.
-7. Never invent policies.
-8. Never claim that a booking or availability check has been completed unless a connected system actually confirms it.
-9. If the information clearly answers the customer's question, answer directly.
-10. Keep responses short, professional and natural.
-11. If the business has not provided the requested information, say:
+1. The business information below is the ONLY source of truth.
+2. Never invent information.
+3. Never assume the business offers a service unless it is explicitly listed.
+4. Never invent prices.
+5. Never invent availability.
+6. Never invent booking requirements.
+7. Never invent vehicle types.
+8. Never invent policies.
+9. Never invent locations.
+10. Never claim to check availability or make a booking unless a real connected system confirms it.
+11. If the business information answers the customer's question, answer directly.
+12. Do not add unnecessary questions or procedures.
+13. If information is missing, say:
 "The business has not provided that information."
-12. Do not behave like a generic hotel booking assistant.
+14. Keep answers short, professional and natural.
+15. Do NOT behave like a generic hotel booking assistant.
 
 ${businessInfo}
 `,
@@ -193,26 +214,25 @@ ${businessInfo}
       input: message
     });
 
-    return res.json({
+
+    res.json({
       reply: response.output_text
     });
 
   } catch (error) {
     console.error("OpenAI error:", error.message);
 
-    return res.status(500).json({
+    res.status(500).json({
       error: "LAVI AI could not generate a response."
     });
   }
 });
 
-app.get("/health", (req, res) => {
-  res.json({
-    online: true,
-    openaiConfigured: Boolean(process.env.OPENAI_API_KEY)
-  });
-});
+
+/*
+  START SERVER
+*/
 
 app.listen(PORT, () => {
-  console.log(`LAVI AI running on port ${PORT}`);
+  console.log(`LAVI AI running at http://localhost:${PORT}`);
 });
