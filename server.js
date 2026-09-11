@@ -14,17 +14,16 @@ const client = new OpenAI({
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
 
+
 /*
-  DEMO BUSINESS PROFILE
-  Used when no complete business profile
-  has been provided by the frontend.
+  DEMO BUSINESS INFORMATION
 */
 const defaultBusiness = {
   name: "LAVI Hotel",
   type: "Hotel & Hospitality",
   services: "Hotel rooms, restaurant, airport transfers",
   hours: "24 hours",
-  faq: "Do you offer airport transfers? Yes."
+  faq: "Do you offer airport transfers? Yes. Do you offer restaurant services? Yes."
 };
 
 
@@ -40,7 +39,7 @@ app.get("/health", (req, res) => {
 
 
 /*
-  AI CHAT
+  CHAT
 */
 app.post("/chat", async (req, res) => {
   try {
@@ -52,51 +51,61 @@ app.post("/chat", async (req, res) => {
       });
     }
 
-    let business = req.body.business || {};
-
-    /*
-      If the frontend sends no useful business information,
-      use the demo business profile.
-    */
-    const hasBusinessData =
-      business.name ||
-      business.type ||
-      business.services ||
-      business.hours ||
-      business.faq;
-
-    if (!hasBusinessData) {
-      business = defaultBusiness;
-    }
-
-    const faq = String(business.faq || "");
-    const services = String(business.services || "");
-
-    const question = message.toLowerCase().trim();
-    const faqText = faq.toLowerCase();
-    const servicesText = services.toLowerCase();
+    const incomingBusiness = req.body.business || {};
 
 
     /*
-      DIRECT BUSINESS FACTS
-      These rules take priority over the AI.
+      Use frontend business information when available.
+      Use the demo information for empty fields.
     */
+    const business = {
+      name:
+        String(incomingBusiness.name || "").trim() ||
+        defaultBusiness.name,
 
-    const askingAboutAirportTransfer =
+      type:
+        String(incomingBusiness.type || "").trim() ||
+        defaultBusiness.type,
+
+      services:
+        String(incomingBusiness.services || "").trim() ||
+        defaultBusiness.services,
+
+      hours:
+        String(incomingBusiness.hours || "").trim() ||
+        defaultBusiness.hours,
+
+      faq:
+        String(incomingBusiness.faq || "").trim() ||
+        defaultBusiness.faq
+    };
+
+
+    const question = message.toLowerCase();
+
+    const servicesText =
+      business.services.toLowerCase();
+
+    const faqText =
+      business.faq.toLowerCase();
+
+
+    /*
+      AIRPORT TRANSFERS
+    */
+    const askingAboutAirport =
+      question.includes("airport") &&
       (
-        question.includes("airport") &&
-        (
-          question.includes("transfer") ||
-          question.includes("transport") ||
-          question.includes("pickup") ||
-          question.includes("pick up") ||
-          question.includes("drop off") ||
-          question.includes("drop-off") ||
-          question.includes("shuttle")
-        )
+        question.includes("transfer") ||
+        question.includes("transport") ||
+        question.includes("pickup") ||
+        question.includes("pick up") ||
+        question.includes("drop off") ||
+        question.includes("drop-off") ||
+        question.includes("shuttle")
       );
 
-    const businessConfirmsAirportTransfer =
+    const airportAvailable =
       (
         servicesText.includes("airport") &&
         (
@@ -108,20 +117,10 @@ app.post("/chat", async (req, res) => {
       ) ||
       (
         faqText.includes("airport") &&
-        (
-          faqText.includes("transfer") ||
-          faqText.includes("transport") ||
-          faqText.includes("pickup") ||
-          faqText.includes("shuttle")
-        ) &&
         /\byes\b/.test(faqText)
       );
 
-
-    if (
-      askingAboutAirportTransfer &&
-      businessConfirmsAirportTransfer
-    ) {
+    if (askingAboutAirport && airportAvailable) {
       return res.json({
         reply: "Yes, we do offer airport transfers."
       });
@@ -129,26 +128,40 @@ app.post("/chat", async (req, res) => {
 
 
     /*
+      RESTAURANT
+    */
+    const askingAboutRestaurant =
+      question.includes("restaurant") ||
+      question.includes("food") ||
+      question.includes("dining");
+
+    const restaurantAvailable =
+      servicesText.includes("restaurant") ||
+      faqText.includes("restaurant");
+
+    if (askingAboutRestaurant && restaurantAvailable) {
+      return res.json({
+        reply: "Yes, we offer restaurant services."
+      });
+    }
+
+
+    /*
       ROOMS / ACCOMMODATION
     */
-
     const askingAboutRooms =
       question.includes("room") ||
       question.includes("rooms") ||
       question.includes("accommodation") ||
       question.includes("stay");
 
-    const businessOffersRooms =
+    const roomsAvailable =
       servicesText.includes("room") ||
       servicesText.includes("accommodation") ||
       faqText.includes("room") ||
       faqText.includes("accommodation");
 
-
-    if (
-      askingAboutRooms &&
-      businessOffersRooms
-    ) {
+    if (askingAboutRooms && roomsAvailable) {
       return res.json({
         reply: "Yes, we offer accommodation."
       });
@@ -158,55 +171,49 @@ app.post("/chat", async (req, res) => {
     /*
       BUSINESS INFORMATION
     */
-
     const businessInfo = `
-BUSINESS INFORMATION — USE AS THE ONLY SOURCE OF TRUTH
+BUSINESS INFORMATION — ONLY SOURCE OF TRUTH
 
 Business name:
-${business.name || "Not provided"}
+${business.name}
 
 Business type:
-${business.type || "Not provided"}
+${business.type}
 
 Products & Services:
-${business.services || "Not provided"}
+${business.services}
 
 Opening hours:
-${business.hours || "Not provided"}
+${business.hours}
 
 Frequently Asked Questions:
-${business.faq || "Not provided"}
+${business.faq}
 `;
 
 
     /*
-      OPENAI RESPONSE
+      OPENAI
     */
-
     const response = await client.responses.create({
       model: "gpt-5-mini",
 
       instructions: `
 You are LAVI AI, the official customer-support assistant for this business.
 
-CRITICAL RULES:
+RULES:
 
-1. The business information below is the ONLY source of truth.
-2. Never invent information.
-3. Never assume the business offers a service unless it is explicitly listed.
-4. Never invent prices.
-5. Never invent availability.
-6. Never invent booking requirements.
-7. Never invent vehicle types.
-8. Never invent policies.
-9. Never invent locations.
-10. Never claim to check availability or make a booking unless a real connected system confirms it.
-11. If the business information answers the customer's question, answer directly.
-12. Do not add unnecessary questions or procedures.
-13. If information is missing, say:
+1. Use ONLY the business information provided below.
+2. Never invent prices.
+3. Never invent availability.
+4. Never invent locations.
+5. Never invent policies.
+6. Never invent services.
+7. Never invent booking requirements.
+8. Never claim that a booking has been made.
+9. Answer directly when the information is available.
+10. Keep answers short, professional and natural.
+11. If the information is genuinely missing, say:
 "The business has not provided that information."
-14. Keep answers short, professional and natural.
-15. Do NOT behave like a generic hotel booking assistant.
 
 ${businessInfo}
 `,
@@ -232,7 +239,6 @@ ${businessInfo}
 /*
   START SERVER
 */
-
 app.listen(PORT, () => {
   console.log(`LAVI AI running at http://localhost:${PORT}`);
 });
